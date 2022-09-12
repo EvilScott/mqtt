@@ -25,7 +25,6 @@ struct FixedHeader {
     dup: bool,
     qos: u8,
     retain: bool,
-    remaining_length: u8,
 }
 
 impl FixedHeader {
@@ -83,6 +82,7 @@ pub(crate) trait ControlPacket {
     fn get_payload(&self) -> &Payload;
     fn payload_bytes(&self) -> Vec<u8> { self.get_payload().as_bytes() }
 
+    fn from_bytes(bytes: Vec<u8>) -> Self where Self: Sized;
     fn as_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.append(&mut self.fixed_header_bytes());
@@ -92,6 +92,11 @@ pub(crate) trait ControlPacket {
     }
 }
 
-// pub(crate) fn parse_packet_bytes(bytes: Vec<u8>) -> &impl ControlPacket {
-//     //TODO
-// }
+pub(crate) fn parse_packet_bytes(bytes: Vec<u8>) -> Box<dyn ControlPacket> {
+    let first_byte = bytes[0];
+    match first_byte >> 4 {
+        1 => Box::new(Connect::from_bytes(bytes)),
+        //TODO other types here
+        _ => panic!("unknown package type"),
+    }
+}
