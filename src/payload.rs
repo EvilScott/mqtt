@@ -24,6 +24,6 @@ impl Payload {
     }
 
     pub(crate) fn as_bytes(&self) -> Vec<u8> {
-        vec![0] //TODO calculate length and values from struct
+        self.values.iter().flat_map(|v| v.as_bytes()).collect()
     }
 }
