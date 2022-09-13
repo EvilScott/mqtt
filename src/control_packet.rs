@@ -1,4 +1,7 @@
 use crate::control_packet::connect::Connect;
+use crate::fixed_header::FixedHeader;
+use crate::payload::Payload;
+use crate::variable_header::VariableHeader;
 
 pub(crate) mod connect;
 
@@ -18,58 +21,6 @@ pub(crate) enum PacketType {
     PINGRESP,
     DISCONNECT,
     AUTH,
-}
-
-struct FixedHeader {
-    packet_type_value: u8,
-    dup: bool,
-    qos: u8,
-    retain: bool,
-}
-
-impl FixedHeader {
-    fn flags_byte(&self) -> u8 { 0b0000_0000 } //TODO calculate from flags
-    fn remaining_length(&self) -> Vec<u8> { vec![0] } //TODO implement variable length int
-    fn as_bytes(&self) -> Vec<u8> {
-        let mut bytes: Vec<u8> = vec![(self.packet_type_value << 4) + self.flags_byte()];
-        bytes.append(&mut self.remaining_length());
-        bytes
-    }
-}
-
-struct VariableHeader {
-    keep_alive: u16,
-    //TODO flags
-    //TODO properties
-}
-
-impl VariableHeader {
-    fn protocol_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![0, 4]; // protocol name msb/lsb
-        bytes.append(&mut Vec::from("MQTT".as_bytes()));  // protocol name
-        bytes.push(5); // protocol version
-        bytes
-    }
-    fn flags_byte(&self) -> u8 { 0b0000_0000 }
-    fn keep_alive_bytes(&self) -> Vec<u8> { vec![0, 0] } //TODO calculate from flags
-    fn property_bytes(&self) -> Vec<u8> { vec![0] } //TODO calculate from properties
-    fn as_bytes(&self) -> Vec<u8> {
-        let mut bytes = self.property_bytes();
-        bytes.push(self.flags_byte());
-        bytes.append(&mut self.keep_alive_bytes());
-        bytes.append(&mut self.property_bytes());
-        bytes
-    }
-}
-
-struct Payload {
-    //TODO add payload values
-}
-
-impl Payload {
-    fn as_bytes(&self) -> Vec<u8> {
-        vec![0] //TODO calculate length and values from struct
-    }
 }
 
 pub(crate) trait ControlPacket {
@@ -99,4 +50,10 @@ pub(crate) fn parse_packet_bytes(bytes: Vec<u8>) -> Box<dyn ControlPacket> {
         //TODO other types here
         _ => panic!("unknown package type"),
     }
+}
+
+pub(crate) fn encode_utf8_string(string: &str) -> Vec<u8> {
+    let mut bytes: Vec<u8> = Vec::from(string.len().to_be_bytes());
+    bytes.append(&mut Vec::from(string.as_bytes()));
+    bytes
 }
