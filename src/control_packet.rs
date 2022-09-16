@@ -72,6 +72,15 @@ mod tests {
     }
 
     #[test]
+    fn test_encode_decode_variable_length_int() {
+        let int: u32 = 20_668;
+        let encoded: Vec<u8> = encode_variable_length_int(int);
+        let (decoded, byte_num): (u32, usize) = decode_variable_length_int(encoded);
+        assert_eq!(decoded, int);
+        assert_eq!(byte_num, 3);
+    }
+
+    #[test]
     fn test_encode_utf8_string() {
         let actual: Vec<u8> = encode_utf8_string("foobar");
         let expected: Vec<u8> = vec![0,6,102,111,111,98,97,114];
