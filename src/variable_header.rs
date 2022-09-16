@@ -27,4 +27,8 @@ impl VariableHeader {
         bytes.append(&mut self.property_bytes());
         bytes
     }
+
+    pub(crate) fn len(&self) -> u32 {
+        self.as_bytes().len() as u32
+    }
 }

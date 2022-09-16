@@ -10,11 +10,20 @@ pub(crate) struct Connect {
 }
 
 impl Connect {
-    fn new(client_id: String) -> Connect {
-        let fixed_header = FixedHeader::new(1,false,0, false);
-        let variable_header = VariableHeader::new(0);
+    pub(crate) fn new(client_id: String) -> Connect {
         let values = vec![PayloadValue::EncodedString(client_id)];
         let payload = Payload::new(values);
+
+        let keep_alive = 0;
+        let variable_header = VariableHeader::new(keep_alive);
+
+        let packet_type_value = 1;
+        let dup = false;
+        let qos = 0;
+        let retain = false;
+        let remaining_length: u32 = 0; //TODO calculate this
+        let fixed_header = FixedHeader::new(packet_type_value,dup,qos, retain, remaining_length);
+
         Connect { fixed_header, variable_header, payload }
     }
 }

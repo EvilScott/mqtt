@@ -26,4 +26,8 @@ impl Payload {
     pub(crate) fn as_bytes(&self) -> Vec<u8> {
         self.values.iter().flat_map(|v| v.as_bytes()).collect()
     }
+
+    pub(crate) fn len(&self) -> u32 {
+        self.as_bytes().len() as u32
+    }
 }
