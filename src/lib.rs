@@ -1,3 +1,4 @@
+pub(crate) mod common;
 pub(crate) mod fixed_header;
 pub(crate) mod variable_header;
 pub(crate) mod payload;

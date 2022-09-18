@@ -1,4 +1,4 @@
-use crate::control_packet::encode_variable_length_int;
+use crate::common::{decode_variable_length_int, encode_variable_length_int};
 
 pub(crate) struct FixedHeader {
     packet_type_value: u8,
@@ -22,8 +22,20 @@ impl FixedHeader {
         encode_variable_length_int(self.remaining_length)
     }
 
-    pub(crate) fn new(packet_type_value: u8, dup: bool, qos: u8, retain: bool, remaining_length: u32) -> FixedHeader {
+    pub(crate) fn new(packet_type_value: u8, dup: bool, qos: u8, retain: bool, remaining_length: u32) -> Self {
         FixedHeader { packet_type_value, dup, qos, retain, remaining_length }
+    }
+
+    pub(crate) fn from_bytes(bytes: Vec<u8>) -> (Self, Vec<u8>) {
+        let (rem_len, rem_len_len): (u32, usize) = decode_variable_length_int(Vec::from(&bytes[1..5]));
+        let fixed_header = FixedHeader {
+            packet_type_value: bytes[0] >> 4,
+            dup: false,
+            qos: 1,
+            retain: false,
+            remaining_length: rem_len,
+        };
+        (fixed_header, Vec::from(&bytes[1 + rem_len_len..]))
     }
 
     pub(crate) fn as_bytes(&self) -> Vec<u8> {

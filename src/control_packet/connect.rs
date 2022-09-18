@@ -21,8 +21,8 @@ impl Connect {
         let dup = false;
         let qos = 0;
         let retain = false;
-        let remaining_length: u32 = 0; //TODO calculate this
-        let fixed_header = FixedHeader::new(packet_type_value,dup,qos, retain, remaining_length);
+        let remaining_length: u32 = variable_header.len() + payload.len();
+        let fixed_header = FixedHeader::new(packet_type_value, dup, qos, retain, remaining_length);
 
         Connect { fixed_header, variable_header, payload }
     }
@@ -33,7 +33,22 @@ impl ControlPacket for Connect {
     fn get_variable_header(&self) -> &VariableHeader { &self.variable_header }
     fn get_payload(&self) -> &Payload { &self.payload }
     fn from_bytes(bytes: Vec<u8>) -> Connect {
-        //TODO parse incoming bytes
-        Connect::new(String::from("foo"))
+        let (fixed_header, variable_header_bytes) = FixedHeader::from_bytes(bytes);
+        let (variable_header, payload_bytes) = VariableHeader::from_bytes(variable_header_bytes);
+        let payload = Payload::from_bytes(payload_bytes);
+        Connect { fixed_header, variable_header, payload }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::{Connect, ControlPacket};
+
+    //TODO FIXME
+    // #[test]
+    // fn test_connect_as_bytes_from_bytes() {
+    //     let bytes = Connect::new(String::from("foo")).as_bytes();
+    //     let packet = Connect::from_bytes(bytes);
+    //     assert_eq!(packet.payload.payload_values()[0].value(), "foo");
+    // }
 }
