@@ -202,6 +202,19 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_byte_sequence() {
+        let byte_sequence: &[Byte] = &[1,0,2,0,0,0,3,0,3,102,111,111];
+        let (byte, leftover_1) = byte_sequence.parse_byte();
+        let (two_byte_int, leftover_2) = leftover_1.parse_two_byte_int();
+        let (four_byte_int, leftover_3) = leftover_2.parse_four_byte_int();
+        let (utf8_string, leftover_4) = leftover_3.parse_utf8_string();
+        assert_eq!(byte, DataType::Byte(1));
+        assert_eq!(two_byte_int, DataType::TwoByteInt(2));
+        assert_eq!(four_byte_int, DataType::FourByteInt(3));
+        assert_eq!(utf8_string, DataType::UTF8String("foo".to_string()));
+    }
+
+    #[test]
     fn test_as_bytes() {
         let byte_bytes = DataType::Byte(9).as_bytes();
         assert_eq!(byte_bytes, vec![9]);
