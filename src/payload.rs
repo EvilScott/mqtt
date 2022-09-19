@@ -1,4 +1,4 @@
-use crate::common::{decode_utf8_string, encode_utf8_string};
+use crate::common::{Byte, Bytes, decode_utf8_string, encode_utf8_string};
 use crate::payload::PayloadValue::EncodedString;
 
 pub(crate) enum PayloadValue {
@@ -7,7 +7,7 @@ pub(crate) enum PayloadValue {
 }
 
 impl PayloadValue {
-    pub(crate) fn as_bytes(&self) -> Vec<u8> {
+    pub(crate) fn as_bytes(&self) -> Bytes {
         match self {
             PayloadValue::EncodedString(str) => encode_utf8_string(str),
             PayloadValue::Plain(str) => Vec::from(str.as_bytes()),
@@ -31,13 +31,13 @@ impl Payload {
         Payload { values }
     }
 
-    pub(crate) fn from_bytes(bytes: Vec<u8>) -> Self {
+    pub(crate) fn from_bytes(bytes: &[Byte]) -> Self {
         let (client_id, _) = decode_utf8_string(bytes);
         let values = vec![EncodedString(client_id)];
         Payload { values }
     }
 
-    pub(crate) fn as_bytes(&self) -> Vec<u8> {
+    pub(crate) fn as_bytes(&self) -> Bytes {
         self.values.iter().flat_map(|v| v.as_bytes()).collect()
     }
 

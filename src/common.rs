@@ -29,52 +29,52 @@ pub(crate) type Byte = u8;
 pub(crate) type Bytes = Vec<Byte>;
 
 pub(crate) trait Parseable {
-    fn parse_byte(&self) -> (DataType, Bytes);
-    fn parse_two_byte_int(&self) -> (DataType, Bytes);
-    fn parse_four_byte_int(&self) -> (DataType, Bytes);
-    fn parse_variable_byte_int(&self) -> (DataType, Bytes);
-    fn parse_utf8_string(&self) -> (DataType, Bytes);
-    fn parse_utf8_string_pair(&self) -> (DataType, Bytes);
-    fn parse_binary_data(&self) -> (DataType, Bytes);
+    fn parse_byte(&self) -> (DataType, &[Byte]);
+    fn parse_two_byte_int(&self) -> (DataType, &[Byte]);
+    fn parse_four_byte_int(&self) -> (DataType, &[Byte]);
+    fn parse_variable_byte_int(&self) -> (DataType, &[Byte]);
+    fn parse_utf8_string(&self) -> (DataType, &[Byte]);
+    fn parse_utf8_string_pair(&self) -> (DataType, &[Byte]);
+    fn parse_binary_data(&self) -> (DataType, &[Byte]);
 }
 
-impl Parseable for Bytes {
-    fn parse_byte(&self) -> (DataType, Bytes) {
-        (DataType::Byte(self[0]), Vec::from(&self[1..]))
+impl Parseable for &[Byte] {
+    fn parse_byte(&self) -> (DataType, &[Byte]) {
+        (DataType::Byte(self[0]), &self[1..])
     }
 
-    fn parse_two_byte_int(&self) -> (DataType, Bytes) {
+    fn parse_two_byte_int(&self) -> (DataType, &[Byte]) {
         let bytes: [u8; 2] = [self[0] as u8, self[1] as u8];
         let val = u16::from_be_bytes(bytes);
-        (DataType::TwoByteInt(val), Vec::from(&self[2..]))
+        (DataType::TwoByteInt(val), &self[2..])
     }
 
-    fn parse_four_byte_int(&self) -> (DataType, Bytes) {
+    fn parse_four_byte_int(&self) -> (DataType, &[Byte]) {
         let bytes: [u8; 4] = [self[0] as u8, self[1] as u8, self[2] as u8, self[3] as u8];
         let val = u32::from_be_bytes(bytes);
-        (DataType::FourByteInt(val), Vec::from(&self[4..]))
+        (DataType::FourByteInt(val), &self[4..])
     }
 
-    fn parse_variable_byte_int(&self) -> (DataType, Bytes) {
-        let (val, len) = decode_variable_length_int(self.clone());
-        (DataType::VariableByteInt(val), Vec::from(&self[len..]))
+    fn parse_variable_byte_int(&self) -> (DataType, &[Byte]) {
+        let (val, len) = decode_variable_length_int(&self.clone());
+        (DataType::VariableByteInt(val), &self[len..])
     }
 
-    fn parse_utf8_string(&self) -> (DataType, Bytes) {
-        let (string, leftover) = decode_utf8_string(self.clone());
+    fn parse_utf8_string(&self) -> (DataType, &[Byte]) {
+        let (string, leftover) = decode_utf8_string(&self);
         (DataType::UTF8String(string), leftover)
     }
 
-    fn parse_utf8_string_pair(&self) -> (DataType, Bytes) {
-        let (key, key_leftover) = decode_utf8_string(self.clone());
+    fn parse_utf8_string_pair(&self) -> (DataType, &[Byte]) {
+        let (key, key_leftover) = decode_utf8_string(&self);
         let (val, leftover) = decode_utf8_string(key_leftover);
         (DataType::UTF8StringPair(key, val), leftover)
     }
 
-    fn parse_binary_data(&self) -> (DataType, Bytes) {
+    fn parse_binary_data(&self) -> (DataType, &[Byte]) {
         let len = u16::from_be_bytes([self[0] as u8, self[1] as u8]) as usize;
         let bytes = Vec::from(&self[2..2+len]);
-        (DataType::BinaryData(bytes), Vec::from(&self[2+len..]))
+        (DataType::BinaryData(bytes), &self[2+len..])
     }
 }
 
@@ -112,7 +112,7 @@ pub(crate) fn encode_variable_length_int(mut int: u32) -> Bytes {
     }
 }
 
-pub(crate) fn decode_variable_length_int(bytes: Bytes) -> (u32, usize) {
+pub(crate) fn decode_variable_length_int(bytes: &[Byte]) -> (u32, usize) {
     let mut multiplier: u32 = 1;
     let mut value: u32 = 0;
     for (idx, byte) in bytes.iter().enumerate() {
@@ -130,21 +130,21 @@ pub(crate) fn encode_utf8_string(string: &str) -> Bytes {
     bytes
 }
 
-pub(crate) fn decode_utf8_string(bytes: Bytes) -> (String, Bytes) {
+pub(crate) fn decode_utf8_string(bytes: &[Byte]) -> (String, &[Byte]) {
     let len: usize = (bytes[0] as usize * 256) + bytes[1] as usize;
     let string = String::from_utf8(Vec::from(&bytes[2..2+len])).unwrap();
-    (string, Vec::from(&bytes[2+len..]))
+    (string, &bytes[2+len..])
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Parseable, DataType, Bytes,
+    use super::{Parseable, DataType, Byte, Bytes,
                 encode_variable_length_int, decode_variable_length_int,
                 encode_utf8_string, decode_utf8_string};
 
     #[test]
     fn test_parse_byte() {
-        let bytes: Bytes = vec![1,2,3];
+        let bytes: &[Byte] = &[1,2,3];
         let (byte, leftover) = bytes.parse_byte();
         assert_eq!(byte, DataType::Byte(1));
         assert_eq!(leftover, vec![2,3]);
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn test_parse_two_byte_int() {
-        let bytes: Bytes = vec![1,1,2,3];
+        let bytes: &[Byte] = &[1,1,2,3];
         let (two_byte_int, leftover) = bytes.parse_two_byte_int();
         assert_eq!(two_byte_int, DataType::TwoByteInt(257));
         assert_eq!(leftover, vec![2,3]);
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_parse_four_byte_int() {
-        let bytes: Bytes = vec![1,1,1,1,2,3];
+        let bytes: &[Byte] = &[1,1,1,1,2,3];
         let (four_byte_int, leftover) = bytes.parse_four_byte_int();
         assert_eq!(four_byte_int, DataType::FourByteInt(16_843_009));
         assert_eq!(leftover, vec![2,3]);
@@ -168,8 +168,7 @@ mod tests {
 
     #[test]
     fn test_parse_variable_byte_int() {
-        let mut bytes = encode_variable_length_int(578);
-        bytes.append(&mut vec![2,3]);
+        let bytes: &[Byte] = &[encode_variable_length_int(578).as_slice(), &[2,3]].concat();
         let (variable_length_int, leftover) = bytes.parse_variable_byte_int();
         assert_eq!(variable_length_int, DataType::VariableByteInt(578));
         assert_eq!(leftover, vec![2,3]);
@@ -177,8 +176,7 @@ mod tests {
 
     #[test]
     fn test_parse_utf8_string() {
-        let mut bytes = encode_utf8_string("foobar");
-        bytes.append(&mut vec![2,3]);
+        let bytes: &[Byte] = &[encode_utf8_string("foobar").as_slice(), &[2,3]].concat();
         let (utf8_string, leftover) = bytes.parse_utf8_string();
         assert_eq!(utf8_string, DataType::UTF8String("foobar".to_string()));
         assert_eq!(leftover, vec![2,3]);
@@ -186,18 +184,18 @@ mod tests {
 
     #[test]
     fn test_parse_utf8_string_pair() {
-        let mut bytes = encode_utf8_string("foo");
-        bytes.append(&mut encode_utf8_string("bar"));
-        bytes.append(&mut vec![2,3]);
+        let encoded_1: Bytes = encode_utf8_string("foo");
+        let encoded_2: Bytes = encode_utf8_string("bar");
+        let data: Bytes = [encoded_1, encoded_2, vec![2,3]].concat();
+        let bytes: &[Byte] = data.as_slice();
         let (utf8_string_pair, leftover) = bytes.parse_utf8_string_pair();
         assert_eq!(utf8_string_pair, DataType::UTF8StringPair("foo".to_string(), "bar".to_string()));
         assert_eq!(leftover, vec![2,3]);
-
     }
 
     #[test]
     fn test_parse_binary_data() {
-        let bytes: Bytes = vec![0,4,1,1,1,1,2,3];
+        let bytes: &[Byte] = &[0,4,1,1,1,1,2,3];
         let (binary_data, leftover) = bytes.parse_binary_data();
         assert_eq!(binary_data, DataType::BinaryData(vec![1,1,1,1]));
         assert_eq!(leftover, vec![2,3]);
@@ -228,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_decode_variable_length_int() {
-        let bytes: Bytes = vec![0x80, 0x01, 0xFF, 0x30];
+        let bytes: &[Byte] = &[0x80, 0x01, 0xFF, 0x30];
         let actual: (u32, usize) = decode_variable_length_int(bytes);
         let expected: (u32, usize) = (128, 2);
         assert_eq!(actual, expected);
@@ -238,7 +236,8 @@ mod tests {
     fn test_encode_decode_variable_length_int() {
         let int: u32 = 20_668;
         let encoded: Bytes = encode_variable_length_int(int);
-        let (decoded, byte_num): (u32, usize) = decode_variable_length_int(encoded);
+        let bytes: &[Byte] = encoded.as_slice();
+        let (decoded, byte_num): (u32, usize) = decode_variable_length_int(bytes);
         assert_eq!(decoded, int);
         assert_eq!(byte_num, 3);
     }
@@ -259,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_decode_utf8_string() {
-        let bytes: Bytes = vec![0,3,102,111,111,1,2,3];
+        let bytes: &[Byte] = &[0,3,102,111,111,1,2,3];
         let (string, leftover) = decode_utf8_string(bytes);
         assert_eq!(string, "foo");
         assert_eq!(leftover, vec![1,2,3]);
@@ -268,8 +267,9 @@ mod tests {
     #[test]
     fn test_encode_decode_utf8_string() {
         let string = "foobar";
-        let encoded = encode_utf8_string(string);
-        let (decoded, _) = decode_utf8_string(encoded);
+        let encoded: Bytes = encode_utf8_string(string);
+        let bytes: &[Byte] = encoded.as_slice();
+        let (decoded, _) = decode_utf8_string(bytes);
         assert_eq!(decoded, string);
     }
 }

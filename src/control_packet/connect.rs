@@ -1,3 +1,4 @@
+use crate::common::Byte;
 use crate::control_packet::ControlPacket;
 use crate::fixed_header::FixedHeader;
 use crate::payload::{Payload, PayloadValue};
@@ -32,7 +33,7 @@ impl ControlPacket for Connect {
     fn get_fixed_header(&self) -> &FixedHeader { &self.fixed_header }
     fn get_variable_header(&self) -> &VariableHeader { &self.variable_header }
     fn get_payload(&self) -> &Payload { &self.payload }
-    fn from_bytes(bytes: Vec<u8>) -> Connect {
+    fn from_bytes(bytes: &[Byte]) -> Connect {
         let (fixed_header, variable_header_bytes) = FixedHeader::from_bytes(bytes);
         let (variable_header, payload_bytes) = VariableHeader::from_bytes(variable_header_bytes);
         let payload = Payload::from_bytes(payload_bytes);
