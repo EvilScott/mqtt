@@ -8,16 +8,18 @@ pub(crate) enum PayloadValue {
 
 impl PayloadValue {
     pub(crate) fn as_bytes(&self) -> Bytes {
+        use PayloadValue::*;
         match self {
-            PayloadValue::EncodedString(str) => encode_utf8_string(str),
-            PayloadValue::Plain(str) => Vec::from(str.as_bytes()),
+            EncodedString(str) => encode_utf8_string(str),
+            Plain(str) => Vec::from(str.as_bytes()),
         }
     }
 
     pub(crate) fn value(&self) -> &String {
+        use PayloadValue::*;
         match self {
-            PayloadValue::EncodedString(str) => str,
-            PayloadValue::Plain(str) => str,
+            EncodedString(str) => str,
+            Plain(str) => str,
         }
     }
 }
