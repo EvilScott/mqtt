@@ -25,19 +25,33 @@ impl Connect {
         let remaining_length: u32 = variable_header.len() + payload.len();
         let fixed_header = FixedHeader::new(packet_type_value, dup, qos, retain, remaining_length);
 
-        Connect { fixed_header, variable_header, payload }
+        Connect {
+            fixed_header,
+            variable_header,
+            payload,
+        }
     }
 }
 
 impl ControlPacket for Connect {
-    fn get_fixed_header(&self) -> &FixedHeader { &self.fixed_header }
-    fn get_variable_header(&self) -> &VariableHeader { &self.variable_header }
-    fn get_payload(&self) -> &Payload { &self.payload }
+    fn get_fixed_header(&self) -> &FixedHeader {
+        &self.fixed_header
+    }
+    fn get_variable_header(&self) -> &VariableHeader {
+        &self.variable_header
+    }
+    fn get_payload(&self) -> &Payload {
+        &self.payload
+    }
     fn from_bytes(bytes: &[Byte]) -> Connect {
         let (fixed_header, variable_header_bytes) = FixedHeader::from_bytes(bytes);
         let (variable_header, payload_bytes) = VariableHeader::from_bytes(variable_header_bytes);
         let payload = Payload::from_bytes(payload_bytes);
-        Connect { fixed_header, variable_header, payload }
+        Connect {
+            fixed_header,
+            variable_header,
+            payload,
+        }
     }
 }
 

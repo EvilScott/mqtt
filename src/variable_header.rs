@@ -1,4 +1,4 @@
-use crate::common::{Byte, Bytes, decode_variable_length_int, encode_utf8_string};
+use crate::common::{decode_variable_length_int, encode_utf8_string, Byte, Bytes};
 
 pub(crate) struct VariableHeader {
     keep_alive: u16,
@@ -12,9 +12,15 @@ impl VariableHeader {
         bytes.push(5); // protocol version
         bytes
     }
-    fn flag_bytes(&self) -> Bytes { vec![0b0000_0000] }
-    fn keep_alive_bytes(&self) -> Bytes { vec![0, 0] } //TODO calculate from flags
-    fn property_bytes(&self) -> Bytes { vec![0] } //TODO calculate from properties
+    fn flag_bytes(&self) -> Bytes {
+        vec![0b0000_0000]
+    }
+    fn keep_alive_bytes(&self) -> Bytes {
+        vec![0, 0]
+    } //TODO calculate from flags
+    fn property_bytes(&self) -> Bytes {
+        vec![0]
+    } //TODO calculate from properties
 
     pub(crate) fn new(keep_alive: u16) -> Self {
         VariableHeader { keep_alive }

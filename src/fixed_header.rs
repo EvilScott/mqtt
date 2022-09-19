@@ -1,4 +1,4 @@
-use crate::common::{Byte, Bytes, decode_variable_length_int, encode_variable_length_int};
+use crate::common::{decode_variable_length_int, encode_variable_length_int, Byte, Bytes};
 
 pub(crate) struct FixedHeader {
     packet_type_value: u8,
@@ -11,19 +11,39 @@ pub(crate) struct FixedHeader {
 impl FixedHeader {
     fn flags_byte(&self) -> u8 {
         let mut flags: u8 = 0;
-        if self.retain { flags += 1 }
-        if self.qos == 1 { flags += 2 }
-        if self.qos == 2 { flags += 4 }
-        if self.dup { flags += 8 }
+        if self.retain {
+            flags += 1
+        }
+        if self.qos == 1 {
+            flags += 2
+        }
+        if self.qos == 2 {
+            flags += 4
+        }
+        if self.dup {
+            flags += 8
+        }
         flags
     }
 
-    fn remaining_length(&self) -> Bytes {
+    fn remaining_length_bytes(&self) -> Bytes {
         encode_variable_length_int(self.remaining_length)
     }
 
-    pub(crate) fn new(packet_type_value: u8, dup: bool, qos: u8, retain: bool, remaining_length: u32) -> Self {
-        FixedHeader { packet_type_value, dup, qos, retain, remaining_length }
+    pub(crate) fn new(
+        packet_type_value: u8,
+        dup: bool,
+        qos: u8,
+        retain: bool,
+        remaining_length: u32,
+    ) -> Self {
+        FixedHeader {
+            packet_type_value,
+            dup,
+            qos,
+            retain,
+            remaining_length,
+        }
     }
 
     pub(crate) fn from_bytes(bytes: &[Byte]) -> (Self, &[Byte]) {
@@ -40,7 +60,7 @@ impl FixedHeader {
 
     pub(crate) fn as_bytes(&self) -> Bytes {
         let mut bytes: Bytes = vec![(self.packet_type_value << 4) + self.flags_byte()];
-        bytes.append(&mut self.remaining_length());
+        bytes.append(&mut self.remaining_length_bytes());
         bytes
     }
 

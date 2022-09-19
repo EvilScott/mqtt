@@ -1,6 +1,6 @@
+use crate::control_packet::ControlPacket;
 use std::io::Write;
 use std::net::TcpStream;
-use crate::control_packet::ControlPacket;
 
 pub struct Client {
     client_id: String,
@@ -11,7 +11,11 @@ pub struct Client {
 impl Client {
     pub fn new(client_id: String, host: &str) -> Self {
         let stream = TcpStream::connect(format!("{host}:1883")).unwrap();
-        Client { client_id, stream, subscriptions: Vec::new() }
+        Client {
+            client_id,
+            stream,
+            subscriptions: Vec::new(),
+        }
     }
 
     fn send(&mut self, packet: &impl ControlPacket) {

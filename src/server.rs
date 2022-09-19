@@ -3,7 +3,7 @@ use std::net::{TcpListener, TcpStream};
 
 struct Connection {
     client_id: String,
-    subscriptions: Vec<String>
+    subscriptions: Vec<String>,
 }
 
 pub struct Server {
@@ -12,7 +12,9 @@ pub struct Server {
 
 impl Server {
     pub fn new() -> Self {
-        Server { connections: Vec::new() }
+        Server {
+            connections: Vec::new(),
+        }
     }
 
     pub fn listen(&mut self) {

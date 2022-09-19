@@ -1,5 +1,4 @@
-use crate::common::{Byte, Bytes, decode_utf8_string, encode_utf8_string};
-use crate::payload::PayloadValue::EncodedString;
+use crate::common::{decode_utf8_string, encode_utf8_string, Byte, Bytes};
 
 pub(crate) enum PayloadValue {
     EncodedString(String),
@@ -35,7 +34,7 @@ impl Payload {
 
     pub(crate) fn from_bytes(bytes: &[Byte]) -> Self {
         let (client_id, _) = decode_utf8_string(bytes);
-        let values = vec![EncodedString(client_id)];
+        let values = vec![PayloadValue::EncodedString(client_id)];
         Payload { values }
     }
 
