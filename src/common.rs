@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 pub(crate) enum DataType {
     Byte(u8),
@@ -30,53 +32,68 @@ impl PartialEq for DataType {
 pub(crate) type Byte = u8;
 pub(crate) type Bytes = Vec<Byte>;
 
+#[derive(Debug, Clone)]
+pub(crate) struct ParseError(&'static str);
+
+impl ParseError {
+    pub(crate) fn new(message: &'static str) -> Self {
+        ParseError(message)
+    }
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Parse error: {}", self.0)
+    }
+}
+
 pub(crate) trait Parseable {
-    fn parse_byte(&self) -> (DataType, &[Byte]);
-    fn parse_two_byte_int(&self) -> (DataType, &[Byte]);
-    fn parse_four_byte_int(&self) -> (DataType, &[Byte]);
-    fn parse_variable_byte_int(&self) -> (DataType, &[Byte]);
-    fn parse_utf8_string(&self) -> (DataType, &[Byte]);
-    fn parse_utf8_string_pair(&self) -> (DataType, &[Byte]);
-    fn parse_binary_data(&self) -> (DataType, &[Byte]);
+    fn parse_byte(&self) -> Result<(DataType, &[Byte]), ParseError>;
+    fn parse_two_byte_int(&self) -> Result<(DataType, &[Byte]), ParseError>;
+    fn parse_four_byte_int(&self) -> Result<(DataType, &[Byte]), ParseError>;
+    fn parse_variable_byte_int(&self) -> Result<(DataType, &[Byte]), ParseError>;
+    fn parse_utf8_string(&self) -> Result<(DataType, &[Byte]), ParseError>;
+    fn parse_utf8_string_pair(&self) -> Result<(DataType, &[Byte]), ParseError>;
+    fn parse_binary_data(&self) -> Result<(DataType, &[Byte]), ParseError>;
 }
 
 impl Parseable for &[Byte] {
-    fn parse_byte(&self) -> (DataType, &[Byte]) {
-        (DataType::Byte(self[0]), &self[1..])
+    fn parse_byte(&self) -> Result<(DataType, &[Byte]), ParseError> {
+        Ok((DataType::Byte(self[0]), &self[1..]))
     }
 
-    fn parse_two_byte_int(&self) -> (DataType, &[Byte]) {
+    fn parse_two_byte_int(&self) -> Result<(DataType, &[Byte]), ParseError> {
         let bytes: [u8; 2] = [self[0] as u8, self[1] as u8];
         let val = u16::from_be_bytes(bytes);
-        (DataType::TwoByteInt(val), &self[2..])
+        Ok((DataType::TwoByteInt(val), &self[2..]))
     }
 
-    fn parse_four_byte_int(&self) -> (DataType, &[Byte]) {
+    fn parse_four_byte_int(&self) -> Result<(DataType, &[Byte]), ParseError> {
         let bytes: [u8; 4] = [self[0] as u8, self[1] as u8, self[2] as u8, self[3] as u8];
         let val = u32::from_be_bytes(bytes);
-        (DataType::FourByteInt(val), &self[4..])
+        Ok((DataType::FourByteInt(val), &self[4..]))
     }
 
-    fn parse_variable_byte_int(&self) -> (DataType, &[Byte]) {
-        let (val, len) = decode_variable_length_int(&self.clone());
-        (DataType::VariableByteInt(val), &self[len..])
+    fn parse_variable_byte_int(&self) -> Result<(DataType, &[Byte]), ParseError> {
+        let (val, len) = decode_variable_length_int(&self.clone())?;
+        Ok((DataType::VariableByteInt(val), &self[len..]))
     }
 
-    fn parse_utf8_string(&self) -> (DataType, &[Byte]) {
-        let (string, leftover) = decode_utf8_string(&self);
-        (DataType::UTF8String(string), leftover)
+    fn parse_utf8_string(&self) -> Result<(DataType, &[Byte]), ParseError> {
+        let (string, leftover) = decode_utf8_string(&self)?;
+        Ok((DataType::UTF8String(string), leftover))
     }
 
-    fn parse_utf8_string_pair(&self) -> (DataType, &[Byte]) {
-        let (key, key_leftover) = decode_utf8_string(&self);
-        let (val, leftover) = decode_utf8_string(key_leftover);
-        (DataType::UTF8StringPair(key, val), leftover)
+    fn parse_utf8_string_pair(&self) -> Result<(DataType, &[Byte]), ParseError> {
+        let (key, key_leftover) = decode_utf8_string(&self)?;
+        let (val, leftover) = decode_utf8_string(key_leftover)?;
+        Ok((DataType::UTF8StringPair(key, val), leftover))
     }
 
-    fn parse_binary_data(&self) -> (DataType, &[Byte]) {
+    fn parse_binary_data(&self) -> Result<(DataType, &[Byte]), ParseError> {
         let len = u16::from_be_bytes([self[0] as u8, self[1] as u8]) as usize;
         let bytes = Vec::from(&self[2..2 + len]);
-        (DataType::BinaryData(bytes), &self[2 + len..])
+        Ok((DataType::BinaryData(bytes), &self[2 + len..]))
     }
 }
 
@@ -118,7 +135,7 @@ pub(crate) fn encode_variable_length_int(mut int: u32) -> Bytes {
     }
 }
 
-pub(crate) fn decode_variable_length_int(bytes: &[Byte]) -> (u32, usize) {
+pub(crate) fn decode_variable_length_int(bytes: &[Byte]) -> Result<(u32, usize), ParseError> {
     let mut multiplier: u32 = 1;
     let mut value: u32 = 0;
     for (idx, byte) in bytes.iter().enumerate() {
@@ -126,10 +143,10 @@ pub(crate) fn decode_variable_length_int(bytes: &[Byte]) -> (u32, usize) {
         value = byte_val * multiplier + value;
         multiplier = multiplier * 128;
         if byte & 128 == 0 {
-            return (value, idx + 1);
+            return Ok((value, idx + 1));
         }
     }
-    panic!("malformed variable length int");
+    Err(ParseError::new("malformed variable length int"))
 }
 
 pub(crate) fn encode_utf8_string(string: &str) -> Bytes {
@@ -138,10 +155,10 @@ pub(crate) fn encode_utf8_string(string: &str) -> Bytes {
     bytes
 }
 
-pub(crate) fn decode_utf8_string(bytes: &[Byte]) -> (String, &[Byte]) {
+pub(crate) fn decode_utf8_string(bytes: &[Byte]) -> Result<(String, &[Byte]), ParseError> {
     let len: usize = (bytes[0] as usize * 256) + bytes[1] as usize;
-    let string = String::from_utf8(Vec::from(&bytes[2..2 + len])).unwrap();
-    (string, &bytes[2 + len..])
+    let string = String::from_utf8(Vec::from(&bytes[2..2 + len])).unwrap(); //TODO check for error here
+    Ok((string, &bytes[2 + len..]))
 }
 
 #[cfg(test)]
@@ -154,7 +171,7 @@ mod tests {
     #[test]
     fn test_parse_byte() {
         let bytes: &[Byte] = &[1, 2, 3];
-        let (byte, leftover) = bytes.parse_byte();
+        let (byte, leftover) = bytes.parse_byte().unwrap();
         assert_eq!(byte, DataType::Byte(1));
         assert_eq!(leftover, vec![2, 3]);
     }
@@ -162,7 +179,7 @@ mod tests {
     #[test]
     fn test_parse_two_byte_int() {
         let bytes: &[Byte] = &[1, 1, 2, 3];
-        let (two_byte_int, leftover) = bytes.parse_two_byte_int();
+        let (two_byte_int, leftover) = bytes.parse_two_byte_int().unwrap();
         assert_eq!(two_byte_int, DataType::TwoByteInt(257));
         assert_eq!(leftover, vec![2, 3]);
     }
@@ -170,7 +187,7 @@ mod tests {
     #[test]
     fn test_parse_four_byte_int() {
         let bytes: &[Byte] = &[1, 1, 1, 1, 2, 3];
-        let (four_byte_int, leftover) = bytes.parse_four_byte_int();
+        let (four_byte_int, leftover) = bytes.parse_four_byte_int().unwrap();
         assert_eq!(four_byte_int, DataType::FourByteInt(16_843_009));
         assert_eq!(leftover, vec![2, 3]);
     }
@@ -178,7 +195,7 @@ mod tests {
     #[test]
     fn test_parse_variable_byte_int() {
         let bytes: &[Byte] = &[encode_variable_length_int(578).as_slice(), &[2, 3]].concat();
-        let (variable_length_int, leftover) = bytes.parse_variable_byte_int();
+        let (variable_length_int, leftover) = bytes.parse_variable_byte_int().unwrap();
         assert_eq!(variable_length_int, DataType::VariableByteInt(578));
         assert_eq!(leftover, vec![2, 3]);
     }
@@ -186,7 +203,7 @@ mod tests {
     #[test]
     fn test_parse_utf8_string() {
         let bytes: &[Byte] = &[encode_utf8_string("foobar").as_slice(), &[2, 3]].concat();
-        let (utf8_string, leftover) = bytes.parse_utf8_string();
+        let (utf8_string, leftover) = bytes.parse_utf8_string().unwrap();
         assert_eq!(utf8_string, DataType::UTF8String("foobar".to_string()));
         assert_eq!(leftover, vec![2, 3]);
     }
@@ -197,7 +214,7 @@ mod tests {
         let encoded_2: Bytes = encode_utf8_string("bar");
         let data: Bytes = [encoded_1, encoded_2, vec![2, 3]].concat();
         let bytes: &[Byte] = data.as_slice();
-        let (utf8_string_pair, leftover) = bytes.parse_utf8_string_pair();
+        let (utf8_string_pair, leftover) = bytes.parse_utf8_string_pair().unwrap();
         assert_eq!(
             utf8_string_pair,
             DataType::UTF8StringPair("foo".to_string(), "bar".to_string())
@@ -208,7 +225,7 @@ mod tests {
     #[test]
     fn test_parse_binary_data() {
         let bytes: &[Byte] = &[0, 4, 1, 1, 1, 1, 2, 3];
-        let (binary_data, leftover) = bytes.parse_binary_data();
+        let (binary_data, leftover) = bytes.parse_binary_data().unwrap();
         assert_eq!(binary_data, DataType::BinaryData(vec![1, 1, 1, 1]));
         assert_eq!(leftover, vec![2, 3]);
     }
@@ -216,10 +233,10 @@ mod tests {
     #[test]
     fn test_parse_byte_sequence() {
         let byte_sequence: &[Byte] = &[1, 0, 2, 0, 0, 0, 3, 0, 3, 102, 111, 111];
-        let (byte, leftover_1) = byte_sequence.parse_byte();
-        let (two_byte_int, leftover_2) = leftover_1.parse_two_byte_int();
-        let (four_byte_int, leftover_3) = leftover_2.parse_four_byte_int();
-        let (utf8_string, leftover_4) = leftover_3.parse_utf8_string();
+        let (byte, leftover_1) = byte_sequence.parse_byte().unwrap();
+        let (two_byte_int, leftover_2) = leftover_1.parse_two_byte_int().unwrap();
+        let (four_byte_int, leftover_3) = leftover_2.parse_four_byte_int().unwrap();
+        let (utf8_string, _) = leftover_3.parse_utf8_string().unwrap();
         assert_eq!(byte, DataType::Byte(1));
         assert_eq!(two_byte_int, DataType::TwoByteInt(2));
         assert_eq!(four_byte_int, DataType::FourByteInt(3));
@@ -256,7 +273,7 @@ mod tests {
     #[test]
     fn test_decode_variable_length_int() {
         let bytes: &[Byte] = &[0x80, 0x01, 0xFF, 0x30];
-        let actual: (u32, usize) = decode_variable_length_int(bytes);
+        let actual: (u32, usize) = decode_variable_length_int(bytes).unwrap();
         let expected: (u32, usize) = (128, 2);
         assert_eq!(actual, expected);
     }
@@ -266,7 +283,7 @@ mod tests {
         let int: u32 = 20_668;
         let encoded: Bytes = encode_variable_length_int(int);
         let bytes: &[Byte] = encoded.as_slice();
-        let (decoded, byte_num): (u32, usize) = decode_variable_length_int(bytes);
+        let (decoded, byte_num): (u32, usize) = decode_variable_length_int(bytes).unwrap();
         assert_eq!(decoded, int);
         assert_eq!(byte_num, 3);
     }
@@ -288,7 +305,7 @@ mod tests {
     #[test]
     fn test_decode_utf8_string() {
         let bytes: &[Byte] = &[0, 3, 102, 111, 111, 1, 2, 3];
-        let (string, leftover) = decode_utf8_string(bytes);
+        let (string, leftover) = decode_utf8_string(bytes).unwrap();
         assert_eq!(string, "foo");
         assert_eq!(leftover, vec![1, 2, 3]);
     }
@@ -298,7 +315,7 @@ mod tests {
         let string = "foobar";
         let encoded: Bytes = encode_utf8_string(string);
         let bytes: &[Byte] = encoded.as_slice();
-        let (decoded, _) = decode_utf8_string(bytes);
+        let (decoded, _) = decode_utf8_string(bytes).unwrap();
         assert_eq!(decoded, string);
     }
 }

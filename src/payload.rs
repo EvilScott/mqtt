@@ -1,41 +1,18 @@
-use crate::common::{decode_utf8_string, encode_utf8_string, Byte, Bytes};
-
-pub(crate) enum PayloadValue {
-    EncodedString(String),
-    Plain(String),
-}
-
-impl PayloadValue {
-    pub(crate) fn as_bytes(&self) -> Bytes {
-        use PayloadValue::*;
-        match self {
-            EncodedString(str) => encode_utf8_string(str),
-            Plain(str) => Vec::from(str.as_bytes()),
-        }
-    }
-
-    pub(crate) fn value(&self) -> &String {
-        use PayloadValue::*;
-        match self {
-            EncodedString(str) => str,
-            Plain(str) => str,
-        }
-    }
-}
+use crate::common::{Byte, Bytes, DataType, ParseError, Parseable};
 
 pub(crate) struct Payload {
-    values: Vec<PayloadValue>,
+    pub(crate) values: Vec<DataType>,
 }
 
 impl Payload {
-    pub(crate) fn new(values: Vec<PayloadValue>) -> Self {
+    pub(crate) fn new(values: Vec<DataType>) -> Self {
         Payload { values }
     }
 
-    pub(crate) fn from_bytes(bytes: &[Byte]) -> Self {
-        let (client_id, _) = decode_utf8_string(bytes);
-        let values = vec![PayloadValue::EncodedString(client_id)];
-        Payload { values }
+    pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<Self, ParseError> {
+        let (client_id, _) = bytes.parse_utf8_string().unwrap(); //TODO handle error
+        let values = vec![client_id];
+        Ok(Payload { values })
     }
 
     pub(crate) fn as_bytes(&self) -> Bytes {
@@ -44,9 +21,5 @@ impl Payload {
 
     pub(crate) fn len(&self) -> u32 {
         self.as_bytes().len() as u32
-    }
-
-    pub(crate) fn payload_values(&self) -> &Vec<PayloadValue> {
-        &self.values
     }
 }

@@ -1,4 +1,4 @@
-use crate::common::{decode_variable_length_int, encode_utf8_string, Byte, Bytes};
+use crate::common::{decode_variable_length_int, encode_utf8_string, Byte, Bytes, ParseError};
 
 pub(crate) struct VariableHeader {
     keep_alive: u16,
@@ -26,11 +26,11 @@ impl VariableHeader {
         VariableHeader { keep_alive }
     }
 
-    pub(crate) fn from_bytes(bytes: &[Byte]) -> (Self, &[Byte]) {
-        let (prop_len, prop_len_len) = decode_variable_length_int(&bytes[11..15]);
+    pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<(Self, &[Byte]), ParseError> {
+        let (prop_len, prop_len_len) = decode_variable_length_int(&bytes[11..15])?;
         let payload_start_idx = 11 + prop_len_len + prop_len as usize;
         let variable_header = VariableHeader { keep_alive: 0 }; //TODO pull from bytes
-        (variable_header, &bytes[payload_start_idx..])
+        Ok((variable_header, &bytes[payload_start_idx..]))
     }
 
     pub(crate) fn as_bytes(&self) -> Bytes {

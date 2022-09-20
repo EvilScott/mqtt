@@ -1,4 +1,4 @@
-use crate::common::{Byte, Bytes};
+use crate::common::{Byte, Bytes, ParseError};
 use crate::control_packet::connect::Connect;
 use crate::fixed_header::FixedHeader;
 use crate::payload::Payload;
@@ -40,7 +40,7 @@ pub(crate) trait ControlPacket {
         self.get_payload().as_bytes()
     }
 
-    fn from_bytes(bytes: &[Byte]) -> Self
+    fn from_bytes(bytes: &[Byte]) -> Result<Self, ParseError>
     where
         Self: Sized;
     fn as_bytes(&self) -> Bytes {
@@ -52,11 +52,11 @@ pub(crate) trait ControlPacket {
     }
 }
 
-pub(crate) fn parse_packet_bytes(bytes: &[Byte]) -> Box<dyn ControlPacket> {
+pub(crate) fn parse_packet_bytes(bytes: &[Byte]) -> Result<Box<dyn ControlPacket>, &'static str> {
     let first_byte = bytes[0];
     match first_byte >> 4 {
-        1 => Box::new(Connect::from_bytes(bytes)),
+        1 => Ok(Box::new(Connect::from_bytes(bytes).unwrap())),
         //TODO other types here
-        _ => panic!("unknown package type"),
+        _ => Err("unknown package type"),
     }
 }

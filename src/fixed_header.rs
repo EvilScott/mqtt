@@ -1,4 +1,4 @@
-use crate::common::{decode_variable_length_int, encode_variable_length_int, Byte, Bytes};
+use crate::common::{Byte, Bytes, DataType, ParseError, Parseable};
 
 pub(crate) struct FixedHeader {
     packet_type_value: u8,
@@ -27,7 +27,7 @@ impl FixedHeader {
     }
 
     fn remaining_length_bytes(&self) -> Bytes {
-        encode_variable_length_int(self.remaining_length)
+        DataType::VariableByteInt(self.remaining_length).as_bytes()
     }
 
     pub(crate) fn new(
@@ -46,16 +46,39 @@ impl FixedHeader {
         }
     }
 
-    pub(crate) fn from_bytes(bytes: &[Byte]) -> (Self, &[Byte]) {
-        let (rem_len, rem_len_len): (u32, usize) = decode_variable_length_int(&bytes[1..5]);
-        let fixed_header = FixedHeader {
-            packet_type_value: bytes[0] >> 4,
-            dup: false,
-            qos: 1,
-            retain: false,
-            remaining_length: rem_len,
+    pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<(Self, &[Byte]), ParseError> {
+        let packet_type_value: u8;
+        let dup = false;
+        let qos: u8 = 1;
+        let retain = false;
+        let remaining_length: u32;
+
+        let fb_leftover: &[Byte];
+        if let (DataType::Byte(val), lo) = bytes.parse_byte()? {
+            packet_type_value = val >> 4;
+            //TODO handle dup/qos/retain bits
+            fb_leftover = lo;
+        } else {
+            return Err(ParseError::new("malformed fixed header"));
         };
-        (fixed_header, &bytes[1 + rem_len_len..])
+
+        let leftover: &[Byte];
+        if let (DataType::VariableByteInt(val), lo) = fb_leftover.parse_variable_byte_int()? {
+            remaining_length = val;
+            leftover = lo;
+        } else {
+            return Err(ParseError::new("malformed fixed header"));
+        }
+
+        let fixed_header = FixedHeader {
+            packet_type_value,
+            dup,
+            qos,
+            retain,
+            remaining_length,
+        };
+
+        Ok((fixed_header, leftover))
     }
 
     pub(crate) fn as_bytes(&self) -> Bytes {
@@ -66,5 +89,44 @@ impl FixedHeader {
 
     pub(crate) fn len(&self) -> u32 {
         self.as_bytes().len() as u32
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::fixed_header::FixedHeader;
+
+    #[test]
+    fn test_as_bytes() {
+        let packet_type_value = 1;
+        let dup = false;
+        let qos: u8 = 1;
+        let retain = false;
+        let remaining_length: u32 = 3;
+        let fixed_header = FixedHeader::new(packet_type_value, dup, qos, retain, remaining_length);
+        let bytes = fixed_header.as_bytes();
+        assert_eq!(bytes, vec![257, 3]);
+    }
+
+    #[test]
+    fn test_from_bytes() {
+        todo!()
+    }
+
+    #[test]
+    fn test_as_bytes_from_bytes() {
+        todo!()
+    }
+
+    #[test]
+    fn test_len() {
+        let packet_type_value = 1;
+        let dup = false;
+        let qos: u8 = 1;
+        let retain = false;
+        let remaining_length: u32 = 3;
+        let fixed_header = FixedHeader::new(packet_type_value, dup, qos, retain, remaining_length);
+        let len = fixed_header.len();
+        assert_eq!(len, 2);
     }
 }
