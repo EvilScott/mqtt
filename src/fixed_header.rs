@@ -71,7 +71,7 @@ mod tests {
         let remaining_length: u32 = 3;
         let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
         let bytes = fixed_header.as_bytes();
-        assert_eq!(bytes, vec![257, 3]);
+        assert_eq!(bytes, vec![18, 3]);
     }
 
     #[test]
