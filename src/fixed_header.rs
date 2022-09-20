@@ -1,4 +1,4 @@
-use crate::common::{Byte, Bytes, DataType, ParseError, Parseable};
+use crate::common::{Byte, Bytes, ParseError, Parseable, Serializable, VariableByteInt};
 
 pub(crate) struct FixedHeader {
     packet_type_value: u8,
@@ -27,7 +27,7 @@ impl FixedHeader {
     }
 
     fn remaining_length_bytes(&self) -> Bytes {
-        DataType::VariableByteInt(self.remaining_length).as_bytes()
+        VariableByteInt::new(self.remaining_length).as_bytes()
     }
 
     pub(crate) fn new(
@@ -47,35 +47,18 @@ impl FixedHeader {
     }
 
     pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<(Self, &[Byte]), ParseError> {
-        let packet_type_value: u8;
-        let dup = false;
+        let (first_byte, first_byte_leftover) = bytes.parse_byte()?;
+        let packet_type_value: u8 = first_byte >> 4;
+        let dup = false; //TODO dup/qos/retain bits
         let qos: u8 = 1;
         let retain = false;
-        let remaining_length: u32;
-
-        let fb_leftover: &[Byte];
-        if let (DataType::Byte(val), lo) = bytes.parse_byte()? {
-            packet_type_value = val >> 4;
-            //TODO handle dup/qos/retain bits
-            fb_leftover = lo;
-        } else {
-            return Err(ParseError::new("malformed fixed header"));
-        };
-
-        let leftover: &[Byte];
-        if let (DataType::VariableByteInt(val), lo) = fb_leftover.parse_variable_byte_int()? {
-            remaining_length = val;
-            leftover = lo;
-        } else {
-            return Err(ParseError::new("malformed fixed header"));
-        }
-
+        let (remaining_length, leftover) = first_byte_leftover.parse_variable_byte_int()?;
         let fixed_header = FixedHeader {
             packet_type_value,
             dup,
             qos,
             retain,
-            remaining_length,
+            remaining_length: remaining_length.value(),
         };
 
         Ok((fixed_header, leftover))

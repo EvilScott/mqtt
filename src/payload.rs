@@ -1,11 +1,11 @@
-use crate::common::{Byte, Bytes, DataType, ParseError, Parseable};
+use crate::common::{Byte, Bytes, ParseError, Parseable, Serializable, UTF8String};
 
 pub(crate) struct Payload {
-    pub(crate) values: Vec<DataType>,
+    values: Vec<UTF8String>, //TODO support other types (via trait?)
 }
 
 impl Payload {
-    pub(crate) fn new(values: Vec<DataType>) -> Self {
+    pub(crate) fn new(values: Vec<UTF8String>) -> Self {
         Payload { values }
     }
 
@@ -17,6 +17,10 @@ impl Payload {
 
     pub(crate) fn as_bytes(&self) -> Bytes {
         self.values.iter().flat_map(|v| v.as_bytes()).collect()
+    }
+
+    pub(crate) fn values(&self) -> &[UTF8String] {
+        &self.values
     }
 
     pub(crate) fn len(&self) -> u32 {

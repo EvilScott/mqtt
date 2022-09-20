@@ -1,4 +1,4 @@
-use crate::common::{Byte, DataType, ParseError};
+use crate::common::{Byte, ParseError, UTF8String};
 use crate::control_packet::ControlPacket;
 use crate::fixed_header::FixedHeader;
 use crate::payload::Payload;
@@ -11,8 +11,8 @@ pub(crate) struct Connect {
 }
 
 impl Connect {
-    pub(crate) fn new(client_id: String) -> Connect {
-        let values = vec![DataType::UTF8String(client_id)];
+    pub(crate) fn new(client_id: &str) -> Connect {
+        let values: Vec<UTF8String> = vec![UTF8String::new(client_id)];
         let payload = Payload::new(values);
 
         let keep_alive = 0;
@@ -32,14 +32,8 @@ impl Connect {
         }
     }
 
-    pub(crate) fn client_id(&self) -> &String {
-        let client_id: &String;
-        if let DataType::UTF8String(val) = &self.payload.values[0] {
-            client_id = val;
-        } else {
-            panic!("malformed connect packet")
-        }
-        client_id
+    pub(crate) fn client_id(&self) -> &str {
+        &self.payload.values()[0].value()
     }
 }
 
@@ -72,13 +66,13 @@ mod tests {
 
     #[test]
     fn test_client_id() {
-        let packet = Connect::new("foobar".to_string());
+        let packet = Connect::new("foobar");
         assert_eq!(packet.client_id(), "foobar");
     }
 
     #[test]
     fn test_connect_as_bytes_from_bytes() {
-        let bytes = Connect::new("foo".to_string()).as_bytes();
+        let bytes = Connect::new("foo").as_bytes();
         let byte_slice = bytes.as_slice();
         let packet = Connect::from_bytes(byte_slice).unwrap();
         assert_eq!(packet.client_id(), "foo");
