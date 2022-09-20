@@ -26,18 +26,18 @@ impl Client {
         //TODO send CONNECT and wait for CONNACK
     }
 
-    pub fn publish(&self, topic: &str, payload: &str, qos: u8, retain: bool) {
+    pub fn publish(&self, _topic: &str, _payload: &str, _qos: u8, _retain: bool) {
         //TODO send PUBLISH and wait for PUBACK
         //TODO handle PUBLISH with DUP if no PUBACK comes
     }
 
-    pub fn subscribe(&self, topic: &str) {
+    pub fn subscribe(&self, _topic: &str) {
         //TODO send SUBSCRIBE and wait for SUBACK
         //TODO spin off thread for each subscription handling incoming PUBLISH/outgoing PUBACK
         //TODO eventually take callback here but for now just echo
     }
 
-    pub fn unsubscribe(&self, topic: &str) {
+    pub fn unsubscribe(&self, _topic: &str) {
         //TODO send UNSUBSCRIBE and wait for UNSUBACK
         //TODO kill subscription thread
     }

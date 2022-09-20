@@ -9,6 +9,16 @@ pub(crate) struct FixedHeader {
 }
 
 impl FixedHeader {
+    pub(crate) fn new(packet_type_value: u8, remaining_length: u32) -> Self {
+        FixedHeader {
+            packet_type_value,
+            dup: false,
+            qos: 1,
+            retain: false,
+            remaining_length,
+        }
+    }
+
     fn flags_byte(&self) -> u8 {
         let mut flags: u8 = 0;
         if self.retain {
@@ -30,36 +40,12 @@ impl FixedHeader {
         VariableByteInt::new(self.remaining_length).as_bytes()
     }
 
-    pub(crate) fn new(
-        packet_type_value: u8,
-        dup: bool,
-        qos: u8,
-        retain: bool,
-        remaining_length: u32,
-    ) -> Self {
-        FixedHeader {
-            packet_type_value,
-            dup,
-            qos,
-            retain,
-            remaining_length,
-        }
-    }
-
     pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<(Self, &[Byte]), ParseError> {
         let (first_byte, first_byte_leftover) = bytes.parse_byte()?;
         let packet_type_value: u8 = first_byte >> 4;
-        let dup = false; //TODO dup/qos/retain bits
-        let qos: u8 = 1;
-        let retain = false;
+        //TODO dup/qos/retain bits
         let (remaining_length, leftover) = first_byte_leftover.parse_variable_byte_int()?;
-        let fixed_header = FixedHeader {
-            packet_type_value,
-            dup,
-            qos,
-            retain,
-            remaining_length: remaining_length.value(),
-        };
+        let fixed_header = FixedHeader::new(packet_type_value, remaining_length.value());
 
         Ok((fixed_header, leftover))
     }
@@ -82,11 +68,8 @@ mod tests {
     #[test]
     fn test_as_bytes() {
         let packet_type_value = 1;
-        let dup = false;
-        let qos: u8 = 1;
-        let retain = false;
         let remaining_length: u32 = 3;
-        let fixed_header = FixedHeader::new(packet_type_value, dup, qos, retain, remaining_length);
+        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
         let bytes = fixed_header.as_bytes();
         assert_eq!(bytes, vec![257, 3]);
     }
@@ -104,11 +87,8 @@ mod tests {
     #[test]
     fn test_len() {
         let packet_type_value = 1;
-        let dup = false;
-        let qos: u8 = 1;
-        let retain = false;
         let remaining_length: u32 = 3;
-        let fixed_header = FixedHeader::new(packet_type_value, dup, qos, retain, remaining_length);
+        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
         let len = fixed_header.len();
         assert_eq!(len, 2);
     }

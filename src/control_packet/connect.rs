@@ -19,11 +19,8 @@ impl Connect {
         let variable_header = VariableHeader::new(keep_alive);
 
         let packet_type_value = 1;
-        let dup = false;
-        let qos = 0;
-        let retain = false;
         let remaining_length: u32 = variable_header.len() + payload.len();
-        let fixed_header = FixedHeader::new(packet_type_value, dup, qos, retain, remaining_length);
+        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
 
         Connect {
             fixed_header,

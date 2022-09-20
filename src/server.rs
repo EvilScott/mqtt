@@ -28,7 +28,7 @@ impl Server {
     fn handle_connection(&mut self, mut stream: TcpStream) {
         //TODO give client 30s to send CONNECT otherwise close
         //TODO if anything but a CONNECT comes first then close
-        let buf_reader = BufReader::new(&mut stream);
+        let _buf_reader = BufReader::new(&mut stream);
         //TODO handle CONNECT packet then store the connection
     }
 
