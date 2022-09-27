@@ -67,20 +67,19 @@ mod tests {
     use crate::common::Bytes;
     use crate::fixed_header::FixedHeader;
 
+    const PACKET_TYPE_VALUE: u8 = 1;
+    const REMAINING_LENGTH: u32 = 3;
+
     #[test]
     fn test_as_bytes() {
-        let packet_type_value = 1;
-        let remaining_length: u32 = 3;
-        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
+        let fixed_header = FixedHeader::new(PACKET_TYPE_VALUE, REMAINING_LENGTH);
         let bytes = fixed_header.as_bytes();
         assert_eq!(bytes, vec![18, 3]);
     }
 
     #[test]
     fn test_from_bytes() {
-        let packet_type_value = 1;
-        let remaining_length: u32 = 3;
-        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
+        let fixed_header = FixedHeader::new(PACKET_TYPE_VALUE, REMAINING_LENGTH);
         let bytes: Bytes = vec![18, 3, 2, 3];
         let (parsed_fixed_header, leftover) = FixedHeader::from_bytes(bytes).unwrap();
         assert_eq!(parsed_fixed_header, fixed_header);
@@ -89,9 +88,7 @@ mod tests {
 
     #[test]
     fn test_as_bytes_from_bytes() {
-        let packet_type_value = 1;
-        let remaining_length: u32 = 3;
-        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
+        let fixed_header = FixedHeader::new(PACKET_TYPE_VALUE, REMAINING_LENGTH);
         let bytes = fixed_header.as_bytes();
         let (parsed_fixed_header, _leftover) = FixedHeader::from_bytes(bytes).unwrap();
         assert_eq!(parsed_fixed_header, fixed_header);
@@ -99,9 +96,7 @@ mod tests {
 
     #[test]
     fn test_len() {
-        let packet_type_value = 1;
-        let remaining_length: u32 = 3;
-        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
+        let fixed_header = FixedHeader::new(PACKET_TYPE_VALUE, REMAINING_LENGTH);
         let len = fixed_header.len();
         assert_eq!(len, 2);
     }
