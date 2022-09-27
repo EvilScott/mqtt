@@ -1,5 +1,6 @@
 use crate::common::{Bytes, ParseError, Parseable, Serializable, VariableByteInt};
 
+#[derive(Debug, PartialEq)]
 pub(crate) struct FixedHeader {
     packet_type_value: u8,
     dup: bool,
@@ -63,6 +64,7 @@ impl FixedHeader {
 
 #[cfg(test)]
 mod tests {
+    use crate::common::Bytes;
     use crate::fixed_header::FixedHeader;
 
     #[test]
@@ -76,12 +78,23 @@ mod tests {
 
     #[test]
     fn test_from_bytes() {
-        todo!()
+        let packet_type_value = 1;
+        let remaining_length: u32 = 3;
+        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
+        let bytes: Bytes = vec![18, 3, 2, 3];
+        let (parsed_fixed_header, leftover) = FixedHeader::from_bytes(bytes).unwrap();
+        assert_eq!(parsed_fixed_header, fixed_header);
+        assert_eq!(leftover, vec![2, 3]);
     }
 
     #[test]
     fn test_as_bytes_from_bytes() {
-        todo!()
+        let packet_type_value = 1;
+        let remaining_length: u32 = 3;
+        let fixed_header = FixedHeader::new(packet_type_value, remaining_length);
+        let bytes = fixed_header.as_bytes();
+        let (parsed_fixed_header, _leftover) = FixedHeader::from_bytes(bytes).unwrap();
+        assert_eq!(parsed_fixed_header, fixed_header);
     }
 
     #[test]
