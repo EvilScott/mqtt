@@ -1,4 +1,4 @@
-use crate::common::{decode_variable_length_int, encode_utf8_string, Byte, Bytes, ParseError};
+use crate::common::{encode_utf8_string, Bytes, ParseError, Parseable};
 
 pub(crate) struct VariableHeader {
     keep_alive: u16,
@@ -26,11 +26,18 @@ impl VariableHeader {
         VariableHeader { keep_alive }
     }
 
-    pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<(Self, &[Byte]), ParseError> {
-        let (prop_len, prop_len_len) = decode_variable_length_int(&bytes[11..15])?;
-        let payload_start_idx = 11 + prop_len_len + prop_len as usize;
-        let variable_header = VariableHeader { keep_alive: 0 }; //TODO pull from bytes
-        Ok((variable_header, &bytes[payload_start_idx..]))
+    pub(crate) fn from_bytes(bytes: Bytes) -> Result<(Self, Bytes), ParseError> {
+        let byte_slice = &bytes[..];
+        let (_protocol_name, pn_leftover) = byte_slice.parse_utf8_string()?;
+        let (_protocol_version, pv_leftover) = pn_leftover.parse_byte()?;
+        let (_flag_byte, f_leftover) = pv_leftover.parse_byte()?;
+        let (keep_alive, ka_leftover) = f_leftover.parse_two_byte_int()?;
+        let (prop_len, prop_len_leftover) = ka_leftover.parse_variable_byte_int()?;
+        if prop_len.value() > 0 {
+            return Err(ParseError::new("TODO handle property length > 0"));
+        }
+        let variable_header = VariableHeader::new(keep_alive.value());
+        Ok((variable_header, Vec::from(prop_len_leftover)))
     }
 
     pub(crate) fn as_bytes(&self) -> Bytes {

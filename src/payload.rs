@@ -1,4 +1,4 @@
-use crate::common::{Byte, Bytes, ParseError, Parseable, Serializable, UTF8String};
+use crate::common::{Bytes, ParseError, Parseable, Serializable, UTF8String};
 
 pub(crate) struct Payload {
     values: Vec<UTF8String>, //TODO support other types (via trait?)
@@ -9,8 +9,9 @@ impl Payload {
         Payload { values }
     }
 
-    pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<Self, ParseError> {
-        let (client_id, _) = bytes.parse_utf8_string().unwrap(); //TODO handle error
+    pub(crate) fn from_bytes(bytes: Bytes) -> Result<Self, ParseError> {
+        let byte_slice = &bytes[..];
+        let (client_id, _) = byte_slice.parse_utf8_string()?;
         let values = vec![client_id];
         Ok(Payload { values })
     }

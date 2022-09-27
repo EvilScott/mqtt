@@ -1,4 +1,4 @@
-use crate::common::{Byte, Bytes, ParseError, Parseable, Serializable, VariableByteInt};
+use crate::common::{Bytes, ParseError, Parseable, Serializable, VariableByteInt};
 
 pub(crate) struct FixedHeader {
     packet_type_value: u8,
@@ -40,14 +40,14 @@ impl FixedHeader {
         VariableByteInt::new(self.remaining_length).as_bytes()
     }
 
-    pub(crate) fn from_bytes(bytes: &[Byte]) -> Result<(Self, &[Byte]), ParseError> {
-        let (first_byte, first_byte_leftover) = bytes.parse_byte()?;
+    pub(crate) fn from_bytes(bytes: Bytes) -> Result<(Self, Bytes), ParseError> {
+        let byte_slice = &bytes[..];
+        let (first_byte, first_byte_leftover) = byte_slice.parse_byte()?;
         let packet_type_value: u8 = first_byte >> 4;
         //TODO dup/qos/retain bits
         let (remaining_length, leftover) = first_byte_leftover.parse_variable_byte_int()?;
         let fixed_header = FixedHeader::new(packet_type_value, remaining_length.value());
-
-        Ok((fixed_header, leftover))
+        Ok((fixed_header, Vec::from(leftover)))
     }
 
     pub(crate) fn as_bytes(&self) -> Bytes {

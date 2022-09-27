@@ -45,7 +45,8 @@ impl ControlPacket for Connect {
         &self.payload
     }
     fn from_bytes(bytes: &[Byte]) -> Result<Self, ParseError> {
-        let (fixed_header, variable_header_bytes) = FixedHeader::from_bytes(bytes)?;
+        let byte_vec = Vec::from(bytes);
+        let (fixed_header, variable_header_bytes) = FixedHeader::from_bytes(byte_vec)?;
         let (variable_header, payload_bytes) = VariableHeader::from_bytes(variable_header_bytes)?;
         let payload = Payload::from_bytes(payload_bytes)?;
 
