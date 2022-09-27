@@ -43,6 +43,7 @@ pub(crate) trait ControlPacket {
     fn from_bytes(bytes: &[Byte]) -> Result<Self, ParseError>
     where
         Self: Sized;
+
     fn as_bytes(&self) -> Bytes {
         let mut bytes = Vec::new();
         bytes.append(&mut self.fixed_header_bytes());

@@ -4,6 +4,7 @@ use crate::fixed_header::FixedHeader;
 use crate::payload::Payload;
 use crate::variable_header::VariableHeader;
 
+#[derive(Debug, PartialEq)]
 pub(crate) struct Connect {
     fixed_header: FixedHeader,
     variable_header: VariableHeader,
@@ -60,19 +61,22 @@ impl ControlPacket for Connect {
 
 #[cfg(test)]
 mod tests {
-    use super::{Connect, ControlPacket};
+    use crate::control_packet::connect::{Connect, ControlPacket};
+
+    const CLIENT_ID: &str = "foobar";
 
     #[test]
     fn test_client_id() {
-        let packet = Connect::new("foobar");
-        assert_eq!(packet.client_id(), "foobar");
+        let packet = Connect::new(CLIENT_ID);
+        assert_eq!(packet.client_id(), CLIENT_ID);
     }
 
     #[test]
     fn test_connect_as_bytes_from_bytes() {
-        let bytes = Connect::new("foo").as_bytes();
-        let byte_slice = bytes.as_slice();
-        let packet = Connect::from_bytes(byte_slice).unwrap();
-        assert_eq!(packet.client_id(), "foo");
+        let packet = Connect::new(CLIENT_ID);
+        let bytes = packet.as_bytes();
+        let byte_slice = &bytes[..];
+        let parsed_packet = Connect::from_bytes(byte_slice).unwrap();
+        assert_eq!(parsed_packet, packet);
     }
 }
