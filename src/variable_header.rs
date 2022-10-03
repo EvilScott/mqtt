@@ -10,6 +10,7 @@ pub(crate) struct VariableHeader {
     //TODO properties
 }
 
+//TODO this needs to be moved to each packet as its _variable_
 impl VariableHeader {
     fn protocol_bytes(&self) -> Bytes {
         let protocol_name = UTF8String::new(PROTOCOL_NAME);
